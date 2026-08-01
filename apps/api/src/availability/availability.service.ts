@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { parseHm } from '../scheduling/availability-windows';
 
 export interface CreateSlotInput {
   dayOfWeek?: number | null;
@@ -47,10 +48,19 @@ export class AvailabilityService {
     if (hasDay && (input.dayOfWeek! < 0 || input.dayOfWeek! > 6)) {
       throw new BadRequestException('dayOfWeek must be 0..6');
     }
-    if (!/^\d{2}:\d{2}$/.test(input.startTime) || !/^\d{2}:\d{2}$/.test(input.endTime)) {
+    // parseHm es el mismo parser que usa el cálculo de slots: acepta "HH:mm" y
+    // además "24:00" como fin de día. Así no se puede guardar disponibilidad que
+    // después SlotsService descarte en silencio.
+    const start = parseHm(input.startTime);
+    const end = parseHm(input.endTime);
+    if (!start || !end) {
       throw new BadRequestException('startTime/endTime must be HH:mm');
     }
-    if (input.startTime >= input.endTime) {
+    if (start.hour === 24) {
+      throw new BadRequestException('startTime cannot be 24:00');
+    }
+    // Comparación por minutos (no por string) para que "9:00" vs "10:00" no falle.
+    if (start.hour * 60 + start.minute >= end.hour * 60 + end.minute) {
       throw new BadRequestException('startTime must be before endTime');
     }
   }
