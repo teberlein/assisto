@@ -8,6 +8,7 @@
  */
 
 import { getPatientSession, getProSession } from './storage';
+import { MOCK_ENABLED, mockRequest, DemoApiError } from './mock';
 import type {
   Account,
   Appointment,
@@ -115,6 +116,24 @@ export async function request<T>(
 
   const token = tokenFor(scope);
   if (token) headers.Authorization = `Bearer ${token}`;
+
+  if (MOCK_ENABLED) {
+    try {
+      return await mockRequest<T>(path, {
+        method,
+        body,
+        query,
+        authHeader: headers.Authorization,
+      });
+    } catch (error) {
+      if (error instanceof DemoApiError) {
+        const fallback =
+          FALLBACK_BY_STATUS[error.status] ?? `Error del servidor (${error.status}).`;
+        throw new ApiError(error.status, error.message || fallback);
+      }
+      throw error;
+    }
+  }
 
   let response: Response;
   try {
