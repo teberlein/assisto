@@ -1,0 +1,251 @@
+// Schema completo de sec 7 de la especificación.
+// Incluye entidades del motor de reasignación (WaitlistEntry, NotificationLog,
+// ReassignmentEvent) desde el día 1 para evitar re-migraciones en fase 3,
+// aunque queden ociosas hasta entonces.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -------- Enums --------
+
+enum Role {
+  OWNER
+  PROFESSIONAL
+}
+
+enum AppointmentStatus {
+  SCHEDULED                    // reservado, esperando la fecha
+  CONFIRMED                    // paciente confirmó asistencia (5.4)
+  AVAILABLE_FOR_REASSIGNMENT   // cancelado y en manos del motor (sec 6.4)
+  CANCELLED                    // cancelado definitivo (venció sin reasignar, o cancelación explícita post-motor)
+  COMPLETED
+}
+
+enum AppointmentOrigin {
+  WEB
+  WHATSAPP
+  REASSIGNMENT                 // sec 6.8 - usado para facturación
+}
+
+enum WaitlistStatus {
+  ACTIVE
+  FULFILLED                    // consiguió turno vía motor
+  EXPIRED
+  CANCELLED
+}
+
+enum NotificationChannel {
+  WHATSAPP
+  SIMULATED                    // fase 3, canal de test que persiste sin salir a la red
+}
+
+enum NotificationResponse {
+  ACCEPTED
+  DECLINED
+  NO_RESPONSE
+  LOST_RACE                    // aceptó pero otro lo tomó primero (sec 6.4)
+}
+
+// -------- Entidades de negocio --------
+
+model Account {
+  id            String        @id @default(cuid())
+  name          String
+  timezone      String        @default("America/Argentina/Buenos_Aires")
+  planTier      String        @default("starter")
+  whatsappNumber String?      @unique   // sec 5.1 - un número por cuenta
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  users         User[]
+  professionals Professional[]
+  appointments  Appointment[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  accountId    String
+  account      Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  email        String   @unique
+  passwordHash String
+  fullName     String
+  roles        Role[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  professional Professional?
+}
+
+model Professional {
+  id                    String   @id @default(cuid())
+  accountId             String
+  account               Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName           String
+  googleCalendarId      String?
+  googleRefreshToken    String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  serviceTypes      ServiceType[]
+  availabilitySlots AvailabilitySlot[]
+  appointments      Appointment[]
+  waitlistEntries   WaitlistEntry[]
+
+  @@index([accountId])
+}
+
+model ServiceType {
+  id              String   @id @default(cuid())
+  professionalId  String
+  professional    Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  name            String
+  durationMinutes Int
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  appointments    Appointment[]
+
+  @@index([professionalId])
+}
+
+// AvailabilitySlot: recurrente (dayOfWeek 0-6, sin specificDate)
+// o puntual (specificDate seteado, dayOfWeek null). Se valida en el service.
+model AvailabilitySlot {
+  id             String   @id @default(cuid())
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  dayOfWeek      Int?     // 0=domingo, 6=sábado
+  specificDate   DateTime? @db.Date
+  startTime      String   // "HH:mm" en TZ de la cuenta
+  endTime        String   // "HH:mm" en TZ de la cuenta
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([professionalId])
+}
+
+// Patient: identidad global (no atada a una Account). sec 3
+model Patient {
+  id        String   @id @default(cuid())
+  phone     String   @unique     // E.164
+  fullName  String
+  email     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appointments    Appointment[]
+  waitlistEntries WaitlistEntry[]
+  otpChallenges   PatientOtpChallenge[]
+}
+
+// OTP challenges para login del paciente por web (fase 1: canal simulado)
+model PatientOtpChallenge {
+  id         String   @id @default(cuid())
+  patientId  String
+  patient    Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([patientId, createdAt])
+}
+
+model Appointment {
+  id             String            @id @default(cuid())
+  accountId      String
+  account        Account           @relation(fields: [accountId], references: [id])
+  professionalId String
+  professional   Professional      @relation(fields: [professionalId], references: [id])
+  serviceTypeId  String
+  serviceType    ServiceType       @relation(fields: [serviceTypeId], references: [id])
+
+  // patientId nullable para permitir el estado AVAILABLE_FOR_REASSIGNMENT (sec 6.4)
+  patientId      String?
+  patient        Patient?          @relation(fields: [patientId], references: [id])
+
+  startAt        DateTime          // UTC
+  endAt          DateTime          // UTC
+  status         AppointmentStatus @default(SCHEDULED)
+  origin         AppointmentOrigin
+
+  // sec 6.7: si este turno fue tomado como adelantamiento, apunta al original
+  originalAppointmentId String?      @unique
+  originalAppointment   Appointment? @relation("Advancement", fields: [originalAppointmentId], references: [id])
+  advancedInto          Appointment? @relation("Advancement")
+
+  confirmedAt    DateTime?
+  cancelledAt    DateTime?
+  cancelledBy    String?  // "professional" | "patient" | "system"
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  notificationLogs   NotificationLog[]
+  reassignmentEvents ReassignmentEvent[]
+
+  @@index([professionalId, startAt])
+  @@index([status, startAt])
+  @@index([accountId, startAt])
+}
+
+// -------- Motor de reasignación (sec 6) --------
+
+model WaitlistEntry {
+  id                  String        @id @default(cuid())
+  patientId           String
+  patient             Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  professionalId      String
+  professional        Professional  @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  serviceTypeId       String?       // opcional: preferencia de servicio
+  preferredDaysOfWeek Int[]         // 0..6, vacío = cualquier día
+  // Si está seteado → grupo 2 (paciente con turno propio, quiere adelantar)
+  // Si es null → grupo 1 (sin turno agendado)
+  linkedAppointmentId String?
+  status              WaitlistStatus @default(ACTIVE)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  notificationLogs NotificationLog[]
+
+  @@index([professionalId, status, createdAt])
+  @@index([patientId])
+}
+
+model NotificationLog {
+  id              String              @id @default(cuid())
+  appointmentId   String
+  appointment     Appointment         @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  waitlistEntryId String
+  waitlistEntry   WaitlistEntry       @relation(fields: [waitlistEntryId], references: [id])
+  patientId       String
+  channel         NotificationChannel
+  sentAt          DateTime            @default(now())
+  windowLabel     String              // ej. "24_48h_secuencial", "menos_1h_broadcast"
+  response        NotificationResponse?
+  respondedAt     DateTime?
+
+  @@index([appointmentId, sentAt])
+  @@index([waitlistEntryId])
+}
+
+model ReassignmentEvent {
+  id                String   @id @default(cuid())
+  appointmentId     String
+  appointment       Appointment @relation(fields: [appointmentId], references: [id])
+  previousPatientId String
+  newPatientId      String
+  waitlistEntryId   String
+  createdAt         DateTime @default(now())
+
+  @@index([appointmentId])
+  @@index([createdAt])
+}

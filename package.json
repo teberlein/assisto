@@ -1,0 +1,18 @@
+{
+  "name": "asissto",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "api:dev": "pnpm --filter @asissto/api start:dev",
+    "api:build": "pnpm --filter @asissto/api build",
+    "db:migrate": "pnpm --filter @asissto/api prisma migrate dev",
+    "db:generate": "pnpm --filter @asissto/api prisma generate",
+    "db:studio": "pnpm --filter @asissto/api prisma studio",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
+  },
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20"
+  }
+}
