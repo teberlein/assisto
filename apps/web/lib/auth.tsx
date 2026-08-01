@@ -23,7 +23,7 @@ import {
 } from './storage';
 
 /** Snapshot serializado para que `useSyncExternalStore` compare por valor. */
-function useStoreValue<T>(get: () => T): T | null {
+function useStoreValue<T>(get: () => T | null): T | null {
   const getSnapshot = useCallback(() => {
     const value = get();
     return value === null || value === undefined ? null : JSON.stringify(value);
