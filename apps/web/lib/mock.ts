@@ -27,8 +27,12 @@ import type {
   WaitlistEntry,
 } from '@/types/api';
 
-export const MOCK_ENABLED =
-  (process.env.NEXT_PUBLIC_DEMO_MODE ?? 'true').toLowerCase() !== 'false';
+/**
+ * Forzado a true mientras no haya API deployada: en la demo TODA request debe
+ * caer en el mock, aunque Vercel tenga `NEXT_PUBLIC_API_URL` o
+ * `NEXT_PUBLIC_DEMO_MODE=false` heredados de configs viejas.
+ */
+export const MOCK_ENABLED = true;
 
 const STATE_KEY = 'asissto.demo.state.v3';
 const PATIENT_ACCOUNT_KEY = 'asissto.patientAccountId';
