@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  /* Paleta sobria: pizarra + un acento teal. */
+  --color-brand-50: #eefbf9;
+  --color-brand-100: #d3f4ef;
+  --color-brand-200: #a9e9e1;
+  --color-brand-300: #74d7cd;
+  --color-brand-400: #3fbcb2;
+  --color-brand-500: #23a099;
+  --color-brand-600: #17807c;
+  --color-brand-700: #156764;
+  --color-brand-800: #155252;
+  --color-brand-900: #144544;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+  font-family: var(--font-sans);
+}
+
+/* Foco visible y consistente en toda la app. */
+:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Rayado diagonal para los cupos liberados por el motor. */
+.stripes-amber {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(180, 83, 9, 0.14) 0px,
+    rgba(180, 83, 9, 0.14) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -90,7 +90,10 @@ model Professional {
   user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   displayName           String
   googleCalendarId      String?
+  /// cifrado con ENCRYPTION_KEY (AES-256-GCM), nunca en claro
   googleRefreshToken    String?
+  googleTokenExpiry     DateTime?
+  googleSyncEnabled     Boolean  @default(false)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
@@ -172,6 +175,8 @@ model Appointment {
   // patientId nullable para permitir el estado AVAILABLE_FOR_REASSIGNMENT (sec 6.4)
   patientId      String?
   patient        Patient?          @relation(fields: [patientId], references: [id])
+  /// quién tenía el turno antes de liberarse; lo necesita ReassignmentEvent (sec 6.8)
+  previousPatientId String?
 
   startAt        DateTime          // UTC
   endAt          DateTime          // UTC
@@ -186,6 +191,20 @@ model Appointment {
   confirmedAt    DateTime?
   cancelledAt    DateTime?
   cancelledBy    String?  // "professional" | "patient" | "system"
+
+  // -- Google Calendar (fase 4) --
+  googleEventId  String?
+
+  // -- Recordatorio / auto-cancelación (fase 5, sec 5.4) --
+  reminderSentAt DateTime?
+  /// deadline literal que se le comunica al paciente en el recordatorio
+  autoCancelAt   DateTime?
+
+  // -- Estado del motor de reasignación (fase 3, sec 6.5) --
+  releasedAt        DateTime?   // cuándo entró a AVAILABLE_FOR_REASSIGNMENT
+  notifyRound       Int      @default(0)
+  lastNotifiedAt    DateTime?
+
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -232,9 +251,42 @@ model NotificationLog {
   windowLabel     String              // ej. "24_48h_secuencial", "menos_1h_broadcast"
   response        NotificationResponse?
   respondedAt     DateTime?
+  /// id del mensaje en el proveedor (Kapso) para correlacionar el webhook
+  externalId      String?
 
   @@index([appointmentId, sentAt])
   @@index([waitlistEntryId])
+  @@index([patientId, sentAt])
+  @@index([externalId])
+}
+
+// -------- WhatsApp (fase 4, sec 5.1 / 8.1) --------
+
+// Estado del menú guiado por conversación. Un registro por (cuenta, teléfono).
+// No guarda conversación libre: sólo el paso del wizard y lo elegido hasta ahora.
+model WhatsappSession {
+  id         String   @id @default(cuid())
+  accountId  String
+  phone      String   // E.164 del paciente
+  step       String   @default("IDLE")
+  /// selecciones parciales del wizard: professionalId, serviceTypeId, slot, etc.
+  context    Json     @default("{}")
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([accountId, phone])
+  @@index([expiresAt])
+}
+
+// Idempotencia de webhooks entrantes de Kapso.
+model InboundEvent {
+  id         String   @id @default(cuid())
+  provider   String   // "kapso"
+  externalId String
+  receivedAt DateTime @default(now())
+
+  @@unique([provider, externalId])
 }
 
 model ReassignmentEvent {
