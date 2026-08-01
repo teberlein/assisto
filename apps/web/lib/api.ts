@@ -340,6 +340,10 @@ export const api = {
       scope: 'patient',
     }),
 
+  /** Lista de espera propia del paciente (sec 6.2). */
+  myWaitlist: () =>
+    request<WaitlistEntry[]>('/public/waitlist', { scope: 'patient' }),
+
   leaveWaitlist: (id: string) =>
     request<void>(`/public/waitlist/${id}`, {
       method: 'DELETE',
