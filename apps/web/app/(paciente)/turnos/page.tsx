@@ -183,10 +183,11 @@ function UpcomingRow({
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <Button
           variant="secondary"
           size="sm"
+          className="w-full sm:w-auto"
           onClick={() => setEarlierOpen(true)}
         >
           Avisame si se libera un turno antes
@@ -194,6 +195,7 @@ function UpcomingRow({
         <Button
           variant="ghost"
           size="sm"
+          className="w-full sm:w-auto"
           disabled={busy}
           onClick={() => setConfirmCancel(true)}
         >

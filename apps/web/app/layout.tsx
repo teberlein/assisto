@@ -13,6 +13,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  // Deja que el contenido use toda la pantalla en celulares con notch/home bar;
+  // habilita los env(safe-area-inset-*) que usamos en el nav del paciente.
+  viewportFit: 'cover',
   themeColor: '#155252',
 };
 

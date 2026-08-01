@@ -31,6 +31,14 @@ body {
 body {
   @apply bg-slate-50 text-slate-900 antialiased;
   font-family: var(--font-sans);
+  /* Evita el rebote/zoom horizontal en mobile por scroll accidental. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Respeta la franja inferior del home indicator (iPhone) en barras fijas. */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* Foco visible y consistente en toda la app. */

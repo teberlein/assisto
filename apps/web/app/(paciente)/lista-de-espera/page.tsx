@@ -121,7 +121,7 @@ function EntryRow({
 
   return (
     <li className="px-4 py-4 sm:px-5">
-      <div className="flex flex-wrap items-start justify-between gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-slate-900">
             {entry.professional?.displayName ?? 'Profesional'}
@@ -151,7 +151,12 @@ function EntryRow({
           )}
         </div>
 
-        <Button variant="ghost" size="sm" onClick={() => setConfirm(true)}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full shrink-0 sm:w-auto"
+          onClick={() => setConfirm(true)}
+        >
           Salir de la lista
         </Button>
       </div>

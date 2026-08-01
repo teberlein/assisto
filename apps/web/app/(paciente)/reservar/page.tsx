@@ -340,7 +340,7 @@ function Wizard({ accountId }: { accountId: string }) {
                             key={slot.startAt}
                             type="button"
                             onClick={() => setPending(slot)}
-                            className="rounded-lg border border-slate-300 bg-white px-2 py-2.5 text-sm font-medium text-slate-800 tabular-nums transition-colors hover:border-brand-700 hover:bg-brand-50 hover:text-brand-800"
+                            className="flex min-h-11 items-center justify-center rounded-lg border border-slate-300 bg-white px-2 py-2.5 text-sm font-medium text-slate-800 tabular-nums transition-colors hover:border-brand-700 hover:bg-brand-50 hover:text-brand-800"
                           >
                             {fmtTime(slot.startAt)}
                           </button>

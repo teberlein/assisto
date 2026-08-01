@@ -157,7 +157,7 @@ function CupoRow({
 
   return (
     <li className="px-4 py-4 sm:px-5">
-      <div className="flex flex-wrap items-start justify-between gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-slate-900">
             {fmtDateTime(cupo.startAt)}
@@ -170,7 +170,7 @@ function CupoRow({
             {relativeTime(cupo.startAt)}
           </p>
         </div>
-        <Button size="sm" onClick={start}>
+        <Button className="w-full shrink-0 sm:w-auto" onClick={start}>
           Tomar este cupo
         </Button>
       </div>

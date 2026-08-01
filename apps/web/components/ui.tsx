@@ -22,9 +22,10 @@ const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
     'bg-red-600 text-white hover:bg-red-700 disabled:bg-red-600/50 border border-transparent',
 };
 
+// Altura mínima táctil (~44px) para que sea cómodo tocar en mobile.
 const BUTTON_SIZES: Record<ButtonSize, string> = {
-  sm: 'px-3 py-1.5 text-sm',
-  md: 'px-4 py-2.5 text-sm',
+  sm: 'px-3 py-1.5 text-sm min-h-9',
+  md: 'px-4 py-2.5 text-sm min-h-11',
 };
 
 export interface ButtonProps
@@ -142,8 +143,10 @@ export function Field({ label, hint, error, required, children }: FieldProps) {
   );
 }
 
+// text-base en mobile (16px) evita el zoom automático de iOS al enfocar un
+// campo; en desktop volvemos a 14px. min-h-11 asegura un target táctil cómodo.
 const CONTROL_CLASS =
-  'block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-500';
+  'block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-500 sm:text-sm';
 
 export const Input = forwardRef<
   HTMLInputElement,
