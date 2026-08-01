@@ -97,8 +97,13 @@ async function bootstrap() {
   // pool de Prisma tienen que cerrar limpio antes de que muera el proceso.
   app.enableShutdownHooks();
 
-  const port = config.get<number>('API_PORT') ?? 3001;
-  await app.listen(port);
-  console.log(`API listening on http://localhost:${port}/api`);
+  // Railway/Render/Fly inyectan PORT y esperan que el proceso lo respete.
+  // En dev cae a API_PORT y, por último, 3001. Escuchamos en 0.0.0.0 para que
+  // el balanceador del host llegue al contenedor.
+  const port = Number(
+    config.get<string>('PORT') ?? config.get<string>('API_PORT') ?? 3001,
+  );
+  await app.listen(port, '0.0.0.0');
+  console.log(`API listening on port ${port}`);
 }
 bootstrap();

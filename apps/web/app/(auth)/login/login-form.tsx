@@ -35,6 +35,9 @@ export function LoginForm() {
   return (
     <form onSubmit={onSubmit} className="mt-6 space-y-4" noValidate>
       {error && <Alert tone="error">{error}</Alert>}
+      <Alert tone="info" title="Demo">
+        Usá <strong>demo@asissto.dev</strong> con contraseña <strong>demo1234</strong>.
+      </Alert>
 
       <Field label="Email" required>
         {({ id, describedBy }) => (
