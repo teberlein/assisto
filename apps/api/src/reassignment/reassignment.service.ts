@@ -15,7 +15,7 @@ import {
 } from '../events/appointment.events';
 import { isWithinContactHours, msUntilContactWindow } from './contact-hours';
 import { resolveWindow } from './notification-window';
-import { Candidate, selectCandidates } from './candidate-selector';
+import { Candidate, CandidateSelectorPrisma, selectCandidates } from './candidate-selector';
 
 export interface ReassignmentNotifyJob {
   appointmentId: string;
@@ -172,7 +172,7 @@ export class ReassignmentService implements OnModuleInit {
     // Sec 6.5: el tiempo restante se mide ACÁ, en el momento de enviar.
     const window = resolveWindow(appt.startAt.getTime() - now.getTime());
 
-    const candidates = await selectCandidates(this.prisma, {
+    const candidates = await selectCandidates(this.prisma as unknown as CandidateSelectorPrisma, {
       appointment: {
         id: appt.id,
         professionalId: appt.professionalId,

@@ -46,6 +46,14 @@ export class WaitlistService {
     });
   }
 
+  async get(id: string) {
+    const entry = await this.prisma.waitlistEntry.findUnique({ where: { id } });
+    if (!entry) {
+      throw new BadRequestException('La entrada de lista de espera no existe');
+    }
+    return entry;
+  }
+
   listByProfessional(professionalId: string) {
     return this.prisma.waitlistEntry.findMany({
       where: { professionalId, status: 'ACTIVE' },
