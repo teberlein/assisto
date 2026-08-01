@@ -53,6 +53,23 @@ export interface InboundMessage {
   buttonId: string | null;
 }
 
+/**
+ * Canoniza un teléfono argentino a E.164 de celular (con el `9`).
+ *
+ * WhatsApp/Meta entrega los `wa_id` argentinos **sin** el `9` de celular
+ * (ej. `543464560100`), pero los pacientes se guardan en E.164 estándar
+ * **con** el `9` (ej. `+5493464560100`, que es como los registra el alta web).
+ * Sin esta conversión el lookup por teléfono nunca matchea y todo paciente
+ * argentino cae en "no registrado". Insertamos el `9` tras el `54` cuando
+ * falta. Para el resto de los países devolvemos los dígitos tal cual.
+ */
+export function toArgentineE164(digits: string): string {
+  if (digits.startsWith('54') && !digits.startsWith('549')) {
+    return `549${digits.slice(2)}`;
+  }
+  return digits;
+}
+
 /** Normaliza el body de Kapso. Devuelve null si el evento no nos interesa. */
 export function normalizeInbound(
   body: KapsoWebhookBody,
@@ -81,7 +98,7 @@ export function normalizeInbound(
 
   return {
     externalId,
-    from: `+${digits}`,
+    from: `+${toArgentineE164(digits)}`,
     phoneNumberId: body.phone_number_id ?? body.conversation?.phone_number_id ?? null,
     text: buttonId ? null : text,
     buttonId,
